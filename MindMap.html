@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mind Map Manager</title>
+    <style>
+        #container { display: flex; gap: 20px; padding: 20px; }
+        #controls { width: 200px; }
+        #mindmap { flex-grow: 1; }
+        .node { 
+            padding: 5px 10px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            display: block;
+        }
+        .leaf.new { background-color: #ddd; }
+        .leaf.in-progress { background-color: #ffd700; }
+        .leaf.done { background-color: #90ee90; }
+        .parent.new { background-color: #ddd; }
+        .parent.in-progress { background-color: #ffd700; }
+        .parent.done { background-color: #90ee90; }
+        .node-container {
+            border: 1px solid #888;
+            padding: 5px;
+            margin: 5px;
+            border-radius: 5px;
+            display: block;
+            transition: all 0.2s ease;
+        }
+        .node-container.selected {
+            border: 3px solid blue;
+        }
+        .node-container.dragging {
+            opacity: 0.5;
+            background-color: #e0e0e0;
+        }
+        .node-container.drag-over {
+            border: 2px dashed #000;
+            background-color: #f0f0f0;
+        }
+        button { margin: 5px; padding: 5px 10px; }
+        input { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <button onclick="addNode()">Add Node</button>
+            <button onclick="renameNode()">Rename Node</button>
+            <button onclick="removeNode()">Remove Node</button>
+            <button onclick="exportToJson()">Export to JSON</button>
+            <input type="file" id="importFile" accept=".json" onchange="importFromJson()">
+        </div>
+        <div id="mindmap"></div>
+    </div>
+
+    <script>
+        class Node {
+            constructor(name, isLeaf = true, children = [], collapsed = false) {
+                this.name = name;
+                this.isLeaf = isLeaf;
+                this.children = children;
+                this.status = isLeaf ? 'new' : this.calculateStatus();
+                this.collapsed = collapsed;
+            }
+
+            calculateStatus() {
+                if (this.isLeaf) return this.status;
+                if (!this.children.length) return 'new';
+                
+                const childStatuses = this.children.map(child => child.status);
+                if (childStatuses.every(s => s === 'done')) return 'done';
+                if (childStatuses.some(s => s === 'in-progress') || 
+                    childStatuses.some(s => s === 'done')) return 'in-progress';
+                return 'new';
+            }
+
+            calculateCompletionPercentage() {
+                if (this.isLeaf) return this.status === 'done' ? 100 : 0;
+                if (!this.children.length) return 0;
+                
+                let totalLeafNodes = 0;
+                let completedLeafNodes = 0;
+                
+                function countLeafNodes(node) {
+                    if (node.isLeaf) {
+                        totalLeafNodes++;
+                        if (node.status === 'done') completedLeafNodes++;
+                    } else {
+                        node.children.forEach(countLeafNodes);
+                    }
+                }
+                
+                countLeafNodes(this);
+                return totalLeafNodes > 0 ? Math.round((completedLeafNodes / totalLeafNodes) * 100) : 0;
+            }
+        }
+
+        let mindMap = new Node('Root', false);
+        let selectedNode = null;
+        let draggedNode = null;
+
+        function renderMindMap(node = mindMap, element = document.getElementById('mindmap'), depth = 0) {
+            if (!element) {
+                console.error('Mindmap element not found');
+                return;
+            }
+            element.innerHTML = '';
+
+            function createNodeElement(currentNode, currentDepth) {
+                const container = document.createElement('div');
+                container.className = 'node-container';
+                container.draggable = true;
+                container.dataset.nodeName = currentNode.name; // Unique identifier
+                if (currentNode === selectedNode) container.classList.add('selected');
+
+                const nodeDiv = document.createElement('div');
+                const completionPercentage = currentNode.calculateCompletionPercentage();
+                nodeDiv.className = `node ${currentNode.isLeaf ? 'leaf' : 'parent'} ${currentNode.status}`;
+                nodeDiv.style.marginLeft = `${currentDepth * 20}px`;
+                nodeDiv.textContent = `${currentNode.name} (${completionPercentage}%)`;
+
+                nodeDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    selectedNode = currentNode;
+                    renderMindMap();
+                };
+
+                // Drag and drop event handlers
+                container.ondragstart = (e) => {
+                    draggedNode = currentNode; // Set to the current node being dragged
+                    container.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', currentNode.name);
+                    // console.log('Dragging started:', draggedNode.name); // Debug
+                };
+
+                container.ondragend = () => {
+                    container.classList.remove('dragging');
+                    draggedNode = null;
+                    updateParentStatuses(mindMap);
+                    renderMindMap();
+                    // console.log('Dragging ended'); // Debug
+                };
+
+                container.ondragover = (e) => {
+                    e.preventDefault();
+                    if (draggedNode && draggedNode !== currentNode && areSiblings(draggedNode, currentNode)) {
+                        const parentNode = findParent(mindMap, draggedNode);
+                        const draggedIndex = parentNode.children.indexOf(draggedNode);
+                        const targetIndex = parentNode.children.indexOf(currentNode);
+                        const parentContainer = container.parentElement;
+                        const draggedElement = parentContainer.querySelector('.node-container.dragging');
+
+                        if (draggedIndex !== -1 && targetIndex !== -1) {
+                            const [removed] = parentNode.children.splice(draggedIndex, 1);
+                            parentNode.children.splice(targetIndex, 0, removed);
+
+                            if (e.clientY < container.getBoundingClientRect().top + container.offsetHeight / 2) {
+                                parentContainer.insertBefore(draggedElement, container);
+                            } else {
+                                parentContainer.insertBefore(draggedElement, container.nextSibling);
+                            }
+                        }
+                    }
+                };
+
+                container.ondragenter = (e) => {
+                    e.preventDefault();
+                    if (draggedNode && draggedNode !== currentNode && areSiblings(draggedNode, currentNode)) {
+                        container.classList.add('drag-over');
+                    }
+                };
+
+                container.ondragleave = () => {
+                    container.classList.remove('drag-over');
+                };
+
+                container.ondrop = (e) => {
+                    e.preventDefault();
+                    container.classList.remove('drag-over');
+                    if (draggedNode && draggedNode !== currentNode && areSiblings(draggedNode, currentNode)) {
+                        updateParentStatuses(mindMap);
+                        renderMindMap();
+                    }
+                };
+
+                if (!currentNode.isLeaf && currentNode.children.length) {
+                    const collapseBtn = document.createElement('button');
+                    collapseBtn.textContent = currentNode.collapsed ? '+' : '−';
+                    collapseBtn.style.marginLeft = '5px';
+                    collapseBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        currentNode.collapsed = !currentNode.collapsed;
+                        renderMindMap();
+                    };
+                    nodeDiv.appendChild(collapseBtn);
+                }
+
+                container.appendChild(nodeDiv);
+
+                if (currentNode.isLeaf) {
+                    const statusSelect = document.createElement('select');
+                    ['new', 'in-progress', 'done'].forEach(status => {
+                        const option = document.createElement('option');
+                        option.value = status;
+                        option.text = status;
+                        if (status === currentNode.status) option.selected = true;
+                        statusSelect.appendChild(option);
+                    });
+                    statusSelect.onchange = (e) => {
+                        currentNode.status = e.target.value;
+                        updateParentStatuses(mindMap);
+                        renderMindMap();
+                    };
+                    statusSelect.style.marginLeft = `${currentDepth * 20 + 5}px`;
+                    container.appendChild(statusSelect);
+                }
+
+                if (!currentNode.isLeaf && !currentNode.collapsed) {
+                    currentNode.children.forEach(child => {
+                        container.appendChild(createNodeElement(child, currentDepth + 1));
+                    });
+                }
+
+                return container;
+            }
+
+            const rootElement = createNodeElement(node, depth);
+            element.appendChild(rootElement);
+        }
+
+        function updateParentStatuses(node) {
+            if (!node.isLeaf) {
+                node.status = node.calculateStatus();
+                node.children.forEach(child => updateParentStatuses(child));
+            }
+        }
+
+        function findParent(root, target) {
+            if (root.children.includes(target)) return root;
+            for (let child of root.children) {
+                const parent = findParent(child, target);
+                if (parent) return parent;
+            }
+            return null;
+        }
+
+        function areSiblings(node1, node2) {
+            const parent1 = findParent(mindMap, node1);
+            const parent2 = findParent(mindMap, node2);
+            return parent1 === parent2 && parent1 !== null;
+        }
+
+        function addNode() {
+            if (!selectedNode) {
+                alert('Please select a parent node first');
+                return;
+            }
+            const name = prompt('Enter node name:');
+            if (name) {
+                const newNode = new Node(name);
+                if (selectedNode.isLeaf) {
+                    selectedNode.isLeaf = false;
+                    selectedNode.status = 'new';
+                }
+                selectedNode.children.push(newNode);
+                updateParentStatuses(mindMap);
+                renderMindMap();
+            }
+        }
+
+        function renameNode() {
+            if (!selectedNode) {
+                alert('Please select a node to rename');
+                return;
+            }
+            const newName = prompt('Enter new node name:', selectedNode.name);
+            if (newName && newName.trim()) {
+                selectedNode.name = newName.trim();
+                renderMindMap();
+            } else if (newName !== null) {
+                alert('Node name cannot be empty');
+            }
+        }
+
+        function removeNode() {
+            if (!selectedNode) {
+                alert('Please select a node to remove');
+                return;
+            }
+            if (selectedNode === mindMap) {
+                alert('Cannot remove the root node');
+                return;
+            }
+            if (!confirm(`Are you sure you want to remove "${selectedNode.name}" and all its children?`)) {
+                return;
+            }
+
+            function removeFromParent(parent) {
+                const index = parent.children.indexOf(selectedNode);
+                if (index !== -1) {
+                    parent.children.splice(index, 1);
+                    if (parent.children.length === 0) {
+                        parent.isLeaf = true;
+                        parent.status = 'new';
+                    }
+                    updateParentStatuses(mindMap);
+                    selectedNode = null;
+                    renderMindMap();
+                } else {
+                    parent.children.forEach(child => removeFromParent(child));
+                }
+            }
+
+            removeFromParent(mindMap);
+        }
+
+        function exportToJson() {
+            const json = JSON.stringify(mindMap, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mindmap.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function convertToNode(obj) {
+            const node = new Node(
+                obj.name,
+                obj.isLeaf,
+                obj.children ? obj.children.map(convertToNode) : [],
+                obj.collapsed || false
+            );
+            node.status = obj.status || 'new';
+            return node;
+        }
+
+        function importFromJson() {
+            const file = document.getElementById('importFile').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const jsonData = JSON.parse(e.target.result);
+                    mindMap = convertToNode(jsonData);
+                    updateParentStatuses(mindMap);
+                    selectedNode = null;
+                    renderMindMap();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Initial render
+        window.onload = function() {
+            if (!document.getElementById('mindmap')) {
+                console.error('Mindmap container not found on page load');
+                return;
+            }
+            renderMindMap(mindMap, document.getElementById('mindmap'), 0);
+        };
+    </script>
+</body>
+</html>
