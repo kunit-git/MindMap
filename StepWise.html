@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>StepWise</title>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        #controls {
+            width: 280px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-right: 1px solid #dee2e6;
+        }
+
+        #controls h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        #controls .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        #controls .control-section:last-child {
+            border-bottom: none;
+        }
+
+        #controls .section-title {
+            font-size: 0.85em;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        #mindmap {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+            outline: none;
+        }
+
+        .node {
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            font-weight: 500;
+            font-size: 0.95em;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .node:hover {
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .leaf.new {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            color: #495057;
+        }
+        .leaf.in-progress {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%);
+            color: #856404;
+        }
+        .leaf.done {
+            background: linear-gradient(135deg, #d4edda 0%, #28a745 100%);
+            color: #155724;
+        }
+        .parent.new {
+            background: linear-gradient(135deg, #d6d8db 0%, #ced4da 100%);
+            color: #343a40;
+            font-weight: 600;
+        }
+        .parent.in-progress {
+            background: linear-gradient(135deg, #ffe69c 0%, #ffca2c 100%);
+            color: #664d03;
+            font-weight: 600;
+        }
+        .parent.done {
+            background: linear-gradient(135deg, #badbcc 0%, #198754 100%);
+            color: #0a3622;
+            font-weight: 600;
+        }
+
+        .node-container {
+            border: 2px solid #e9ecef;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 10px;
+            display: block;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+        }
+
+        .node-container.selected {
+            border: 2px solid #667eea;
+            background: #f8f9ff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .node-container.dragging {
+            opacity: 0.6;
+            transform: scale(0.98);
+            background-color: #f8f9fa;
+        }
+
+        .node-container.drag-over {
+            border: 2px dashed #667eea;
+            background-color: #f0f4ff;
+            transform: scale(1.02);
+        }
+
+        button {
+            margin: 5px 0;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            background: #667eea;
+            color: white;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .node button {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            background: rgba(0,0,0,0.1);
+            color: inherit;
+            margin-left: 8px;
+        }
+
+        .node button:hover {
+            background: rgba(0,0,0,0.2);
+        }
+
+        input, textarea, select {
+            margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #controls button, #controls input {
+            width: 100%;
+        }
+
+        #searchBox {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .keyboard-hint {
+            font-size: 0.75em;
+            color: #6c757d;
+            margin-top: 15px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 6px;
+            line-height: 1.6;
+        }
+
+        .keyboard-hint kbd {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #ced4da;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        select {
+            cursor: pointer;
+            float: right;
+        }
+
+        .node-description {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin: 5px 0 5px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-style: italic;
+            display: none;
+        }
+
+        .node-description.visible {
+            display: block;
+        }
+
+        .undo-redo-container {
+            display: flex;
+            gap: 5px;
+        }
+
+        .undo-redo-container button {
+            flex: 1;
+        }
+
+        .stats-container {
+            background: #e7f3ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .stats-container .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .stats-container .stat-label {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .stats-container .stat-value {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .highlight {
+            background-color: #fff176 !important;
+            animation: highlightFade 2s ease-in-out;
+        }
+
+        @keyframes highlightFade {
+            0% { background-color: #fff176; }
+            100% { background-color: transparent; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #importFile {
+            padding: 8px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <h2>StepWise</h2>
+
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span class="stat-label">Total Nodes:</span>
+                    <span class="stat-value" id="totalNodes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Completed:</span>
+                    <span class="stat-value" id="completedNodes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Progress:</span>
+                    <span class="stat-value" id="overallProgress">0%</span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">Search</div>
+                <input type="text" id="searchBox" placeholder="Search nodes..." oninput="searchNodes()">
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">Actions</div>
+                <div class="undo-redo-container">
+                    <button onclick="undo()" id="undoBtn" title="Undo (Ctrl+Z)">↶ Undo</button>
+                    <button onclick="redo()" id="redoBtn" title="Redo (Ctrl+Y)">↷ Redo</button>
+                </div>
+                <button onclick="addNode()">➕ Add Node</button>
+                <button onclick="renameNode()">✏️ Rename Node</button>
+                <button onclick="addDescription()">📝 Add Description</button>
+                <button onclick="removeNode()">🗑️ Remove Node</button>
+            </div>
+
+            <div class="control-section">
+                <div class="section-title">File Operations</div>
+                <button onclick="exportToJson()">💾 Export to JSON</button>
+                <label for="importFile" style="display: block;">
+                    <input type="file" id="importFile" accept=".json" onchange="importFromJson()">
+                </label>
+            </div>
+
+            <div class="keyboard-hint">
+                <strong>Keyboard Shortcuts:</strong><br>
+                <kbd>↑</kbd><kbd>↓</kbd> Navigate siblings<br>
+                <kbd>←</kbd> Go to parent<br>
+                <kbd>→</kbd> Go to first child<br>
+                <kbd>Enter</kbd> Add child node<br>
+                <kbd>F2</kbd> Rename node<br>
+                <kbd>Del</kbd> Remove node<br>
+                <kbd>Ctrl+Z</kbd> Undo<br>
+                <kbd>Ctrl+Y</kbd> Redo<br>
+                <kbd>Ctrl+F</kbd> Search<br>
+                <strong>Double-click</strong> node to edit inline
+            </div>
+        </div>
+        <div id="mindmap" tabindex="0"></div>
+    </div>
+
+    <script>
+        class Node {
+            constructor(name, isLeaf = true, children = [], collapsed = false, description = '') {
+                this.name = name;
+                this.isLeaf = isLeaf;
+                this.children = children;
+                this.status = isLeaf ? 'new' : this.calculateStatus();
+                this.collapsed = collapsed;
+                this.description = description;
+            }
+
+            calculateStatus() {
+                if (this.isLeaf) return this.status;
+                if (!this.children.length) return 'new';
+                
+                const childStatuses = this.children.map(child => child.status);
+                if (childStatuses.every(s => s === 'done')) return 'done';
+                if (childStatuses.some(s => s === 'in-progress') || 
+                    childStatuses.some(s => s === 'done')) return 'in-progress';
+                return 'new';
+            }
+
+            calculateCompletionPercentage() {
+                if (this.isLeaf) return this.status === 'done' ? 100 : 0;
+                if (!this.children.length) return 0;
+                
+                let totalLeafNodes = 0;
+                let completedLeafNodes = 0;
+                
+                function countLeafNodes(node) {
+                    if (node.isLeaf) {
+                        totalLeafNodes++;
+                        if (node.status === 'done') completedLeafNodes++;
+                    } else {
+                        node.children.forEach(countLeafNodes);
+                    }
+                }
+                
+                countLeafNodes(this);
+                return totalLeafNodes > 0 ? Math.round((completedLeafNodes / totalLeafNodes) * 100) : 0;
+            }
+        }
+
+        let mindMap = new Node('Root', false);
+        let selectedNode = null;
+        let draggedNode = null;
+        let history = [];
+        let historyIndex = -1;
+        let maxHistorySize = 50;
+        let searchTerm = '';
+
+        // Undo/Redo functionality
+        function saveState() {
+            const state = JSON.stringify(mindMap);
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
+            }
+            history.push(state);
+            if (history.length > maxHistorySize) {
+                history.shift();
+            } else {
+                historyIndex++;
+            }
+            updateUndoRedoButtons();
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                restoreState(history[historyIndex]);
+                // Refocus for keyboard navigation
+                setTimeout(() => document.getElementById('mindmap').focus(), 0);
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                restoreState(history[historyIndex]);
+                // Refocus for keyboard navigation
+                setTimeout(() => document.getElementById('mindmap').focus(), 0);
+            }
+        }
+
+        function restoreState(state) {
+            mindMap = convertToNode(JSON.parse(state));
+            selectedNode = null;
+            updateParentStatuses(mindMap);
+            renderMindMap();
+            updateUndoRedoButtons();
+        }
+
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            if (undoBtn) undoBtn.disabled = historyIndex <= 0;
+            if (redoBtn) redoBtn.disabled = historyIndex >= history.length - 1;
+        }
+
+        // Search functionality
+        function searchNodes() {
+            searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            renderMindMap();
+        }
+
+        function matchesSearch(node) {
+            if (!searchTerm) return true;
+            return node.name.toLowerCase().includes(searchTerm) ||
+                   (node.description && node.description.toLowerCase().includes(searchTerm));
+        }
+
+        function hasMatchingDescendant(node) {
+            if (matchesSearch(node)) return true;
+            if (!node.isLeaf) {
+                return node.children.some(child => hasMatchingDescendant(child));
+            }
+            return false;
+        }
+
+        // Statistics
+        function updateStats() {
+            let total = 0;
+            let completed = 0;
+
+            function countNodes(node) {
+                if (node.isLeaf) {
+                    total++;
+                    if (node.status === 'done') completed++;
+                } else {
+                    node.children.forEach(countNodes);
+                }
+            }
+
+            countNodes(mindMap);
+
+            document.getElementById('totalNodes').textContent = total;
+            document.getElementById('completedNodes').textContent = completed;
+            document.getElementById('overallProgress').textContent =
+                total > 0 ? Math.round((completed / total) * 100) + '%' : '0%';
+        }
+
+        function renderMindMap(node = mindMap, element = document.getElementById('mindmap'), depth = 0) {
+            if (!element) {
+                console.error('Mindmap element not found');
+                return;
+            }
+            element.innerHTML = '';
+
+            function createNodeElement(currentNode, currentDepth) {
+                // Apply search filter
+                if (searchTerm && !hasMatchingDescendant(currentNode)) {
+                    return null;
+                }
+
+                const container = document.createElement('div');
+                container.className = 'node-container';
+                container.draggable = true;
+                container.dataset.nodeName = currentNode.name;
+                if (currentNode === selectedNode) container.classList.add('selected');
+                if (searchTerm && matchesSearch(currentNode)) container.classList.add('highlight');
+
+                container.ondragstart = (e) => {
+					e.stopPropagation();
+					if (draggedNode) return; // ignore this event
+                    draggedNode = currentNode;
+                    container.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', currentNode.name);
+                };
+
+                container.ondragend = () => {
+                    container.classList.remove('dragging');
+                    draggedNode = null;
+                    updateParentStatuses(mindMap);
+                    saveState();
+                    renderMindMap();
+                };
+
+                container.ondragover = (e) => {
+                    e.preventDefault();
+                };
+
+                container.ondragenter = (e) => {
+                    e.preventDefault();
+                    if (draggedNode && draggedNode !== currentNode) {
+                        container.classList.add('drag-over');
+                    }
+                };
+
+                container.ondragleave = () => {
+                    container.classList.remove('drag-over');
+                };
+
+                container.ondrop = (e) => {
+                    e.stopPropagation();
+					e.preventDefault();
+                    container.classList.remove('drag-over');
+					console.log(draggedNode.name + " - " + currentNode.name);
+                    if (draggedNode && draggedNode !== currentNode && draggedNode !== mindMap) {
+                        // Find and remove draggedNode from its original parent
+                        const originalParent = findParent(mindMap, draggedNode);
+                        if (originalParent) {
+                            const index = originalParent.children.indexOf(draggedNode);
+                            if (index !== -1) {
+                                originalParent.children.splice(index, 1);
+                                if (originalParent.children.length === 0) {
+                                    originalParent.isLeaf = true;
+                                    originalParent.status = 'new';
+                                }
+                            }
+                        }
+
+                        // Attach draggedNode as a child of currentNode
+                        if (currentNode.isLeaf) {
+                            currentNode.isLeaf = false;
+                            currentNode.status = 'new';
+                        }
+                        currentNode.children.push(draggedNode);
+
+                        // Update statuses and re-render
+                        updateParentStatuses(mindMap);
+                        renderMindMap();
+                    }
+                };
+
+                const nodeDiv = document.createElement('div');
+                const completionPercentage = currentNode.calculateCompletionPercentage();
+                nodeDiv.className = `node ${currentNode.isLeaf ? 'leaf' : 'parent'} ${currentNode.status}`;
+                nodeDiv.style.marginLeft = `${currentDepth * 20}px`;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${currentNode.name} (${completionPercentage}%)`;
+                nameSpan.style.cursor = 'pointer';
+                nodeDiv.appendChild(nameSpan);
+
+                nodeDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    selectedNode = currentNode;
+                    renderMindMap();
+                    // Refocus the mindmap div for keyboard navigation
+                    setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                };
+
+                // Double-click to edit inline
+                nameSpan.ondblclick = (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = currentNode.name;
+                    input.style.width = '200px';
+                    input.style.fontSize = '0.95em';
+                    input.style.padding = '4px';
+
+                    const saveEdit = () => {
+                        if (input.value.trim()) {
+                            currentNode.name = input.value.trim();
+                            saveState();
+                            renderMindMap();
+                        } else {
+                            renderMindMap();
+                        }
+                    };
+
+                    input.onblur = saveEdit;
+                    input.onkeydown = (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            saveEdit();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            renderMindMap();
+                        }
+                    };
+
+                    nameSpan.replaceWith(input);
+                    input.focus();
+                    input.select();
+                };
+
+                if (!currentNode.isLeaf && currentNode.children.length) {
+                    const collapseBtn = document.createElement('button');
+                    collapseBtn.textContent = currentNode.collapsed ? '+' : '-';
+                    collapseBtn.style.marginLeft = '5px';
+                    collapseBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        currentNode.collapsed = !currentNode.collapsed;
+                        renderMindMap();
+                        // Refocus for keyboard navigation
+                        setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                    };
+                    nodeDiv.appendChild(collapseBtn);
+                }
+
+                const addChildBtn = document.createElement('button');
+                addChildBtn.textContent = 'Remove';
+                addChildBtn.style.marginLeft = '5px';
+                addChildBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removeChild(currentNode);
+                    renderMindMap();
+                    // Refocus for keyboard navigation
+                    setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                };
+                nodeDiv.appendChild(addChildBtn);                
+
+                container.appendChild(nodeDiv);
+
+                if (currentNode.isLeaf) {
+                    const statusSelect = document.createElement('select');
+                    ['new', 'in-progress', 'done'].forEach(status => {
+                        const option = document.createElement('option');
+                        option.value = status;
+                        option.text = status;
+                        if (status === currentNode.status) option.selected = true;
+                        statusSelect.appendChild(option);
+                    });
+                    statusSelect.onchange = (e) => {
+                        currentNode.status = e.target.value;
+                        updateParentStatuses(mindMap);
+                        saveState();
+                        renderMindMap();
+                        // Refocus for keyboard navigation
+                        setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                    };
+                    container.appendChild(statusSelect);
+                }
+
+                // Add description if it exists
+                if (currentNode.description) {
+                    const descDiv = document.createElement('div');
+                    descDiv.className = 'node-description visible';
+                    descDiv.style.marginLeft = `${currentDepth * 20 + 5}px`;
+                    descDiv.textContent = currentNode.description;
+                    container.appendChild(descDiv);
+                }
+
+                if (!currentNode.isLeaf && !currentNode.collapsed) {
+                    currentNode.children.forEach(child => {
+                        const childElement = createNodeElement(child, currentDepth + 1);
+                        if (childElement) {
+                            container.appendChild(childElement);
+                        }
+                    });
+                }
+
+                return container;
+            }
+
+            const rootElement = createNodeElement(node, depth);
+            if (rootElement) {
+                element.appendChild(rootElement);
+            }
+            updateStats();
+            updateUndoRedoButtons();
+        }
+
+        function updateParentStatuses(node) {
+            if (!node.isLeaf) {
+                node.status = node.calculateStatus();
+                node.children.forEach(child => updateParentStatuses(child));
+            }
+        }
+
+        function findParent(root, target) {
+            if (root.children.includes(target)) return root;
+            for (let child of root.children) {
+                const parent = findParent(child, target);
+                if (parent) return parent;
+            }
+            return null;
+        }
+
+        function areSiblings(node1, node2) {
+            const parent1 = findParent(mindMap, node1);
+            const parent2 = findParent(mindMap, node2);
+            return parent1 === parent2 && parent1 !== null;
+        }
+
+        // Arrow navigation helpers
+        function getSiblings(node) {
+            if (node === mindMap) return [mindMap];
+            const parent = findParent(mindMap, node);
+            return parent ? parent.children : [mindMap];
+        }
+
+        function navigateToNextSibling() {
+            if (!selectedNode) return;
+            const siblings = getSiblings(selectedNode);
+            const currentIndex = siblings.indexOf(selectedNode);
+            if (currentIndex < siblings.length - 1) {
+                selectedNode = siblings[currentIndex + 1];
+                renderMindMap();
+            }
+        }
+
+        function navigateToPreviousSibling() {
+            if (!selectedNode) return;
+            const siblings = getSiblings(selectedNode);
+            const currentIndex = siblings.indexOf(selectedNode);
+            if (currentIndex > 0) {
+                selectedNode = siblings[currentIndex - 1];
+                renderMindMap();
+            }
+        }
+
+        function navigateToParent() {
+            if (!selectedNode || selectedNode === mindMap) return;
+            const parent = findParent(mindMap, selectedNode);
+            if (parent) {
+                selectedNode = parent;
+                renderMindMap();
+            }
+        }
+
+        function navigateToFirstChild() {
+            if (!selectedNode) return;
+            if (!selectedNode.isLeaf && selectedNode.children.length > 0) {
+                // Expand the node if it's collapsed
+                if (selectedNode.collapsed) {
+                    selectedNode.collapsed = false;
+                }
+                selectedNode = selectedNode.children[0];
+                renderMindMap();
+            }
+        }
+
+        function addNode() {
+            if (!selectedNode) {
+                alert('Please select a parent node first');
+                return;
+            }
+            addChild(selectedNode);
+        }
+
+        function addChild(node) {
+            const name = prompt('Enter node name:');
+            if (name) {
+                const newNode = new Node(name);
+                if (node.isLeaf) {
+                    node.isLeaf = false;
+                    node.status = 'new';
+                }
+                node.children.push(newNode);
+                updateParentStatuses(mindMap);
+                saveState();
+                renderMindMap();
+            }
+            // Refocus for keyboard navigation
+            setTimeout(() => document.getElementById('mindmap').focus(), 0);
+        }
+
+        function renameNode() {
+            if (!selectedNode) {
+                alert('Please select a node to rename');
+                return;
+            }
+            const newName = prompt('Enter new node name:', selectedNode.name);
+            if (newName && newName.trim()) {
+                selectedNode.name = newName.trim();
+                saveState();
+                renderMindMap();
+            } else if (newName !== null) {
+                alert('Node name cannot be empty');
+            }
+            // Refocus for keyboard navigation
+            setTimeout(() => document.getElementById('mindmap').focus(), 0);
+        }
+
+        function addDescription() {
+            if (!selectedNode) {
+                alert('Please select a node first');
+                return;
+            }
+            const description = prompt('Enter node description:', selectedNode.description || '');
+            if (description !== null) {
+                selectedNode.description = description;
+                saveState();
+                renderMindMap();
+            }
+            // Refocus for keyboard navigation
+            setTimeout(() => document.getElementById('mindmap').focus(), 0);
+        }
+
+        function removeNode() {
+            if (!selectedNode) {
+                alert('Please select a node to remove');
+                return;
+            }
+            if (selectedNode === mindMap) {
+                alert('Cannot remove the root node');
+                return;
+            }            
+            removeChild(selectedNode);
+        }
+
+        function removeChild(node) {
+            if (!confirm(`Are you sure you want to remove "${node.name}" and all its children?`)) {
+                return;
+            }
+
+            function removeFromParent(parent) {
+                const index = parent.children.indexOf(node);
+                if (index !== -1) {
+                    parent.children.splice(index, 1);
+                    if (parent.children.length === 0) {
+                        parent.isLeaf = true;
+                        parent.status = 'new';
+                    }
+                    updateParentStatuses(mindMap);
+                    saveState();
+                    node = null;
+                    renderMindMap();
+                } else {
+                    parent.children.forEach(child => removeFromParent(child));
+                }
+            }
+
+            removeFromParent(mindMap);
+        }
+
+        function exportToJson() {
+            const json = JSON.stringify(mindMap, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mindmap.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function convertToNode(obj) {
+            const node = new Node(
+                obj.name,
+                obj.isLeaf,
+                obj.children ? obj.children.map(convertToNode) : [],
+                obj.collapsed || false,
+                obj.description || ''
+            );
+            node.status = obj.status || 'new';
+            return node;
+        }
+
+        function importFromJson() {
+            const file = document.getElementById('importFile').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        mindMap = convertToNode(jsonData);
+                        updateParentStatuses(mindMap);
+                        selectedNode = null;
+                        saveState();
+                        renderMindMap();
+                    } catch (error) {
+                        alert('Error importing JSON: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ignore if typing in an input or textarea
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                return;
+            }
+
+            // Ctrl+Z - Undo
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+            // Ctrl+Y - Redo
+            else if (e.ctrlKey && e.key === 'y') {
+                e.preventDefault();
+                redo();
+            }
+            // Ctrl+F - Focus search
+            else if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchBox').focus();
+            }
+            // Enter - Add child node
+            else if (e.key === 'Enter' && selectedNode) {
+                e.preventDefault();
+                addNode();
+            }
+            // F2 - Rename node
+            else if (e.key === 'F2' && selectedNode) {
+                e.preventDefault();
+                renameNode();
+            }
+            // Delete - Remove node
+            else if (e.key === 'Delete' && selectedNode) {
+                e.preventDefault();
+                removeNode();
+            }
+            // Arrow Up - Navigate to previous sibling
+            else if (e.key === 'ArrowUp' && selectedNode) {
+                e.preventDefault();
+                navigateToPreviousSibling();
+            }
+            // Arrow Down - Navigate to next sibling
+            else if (e.key === 'ArrowDown' && selectedNode) {
+                e.preventDefault();
+                navigateToNextSibling();
+            }
+            // Arrow Left - Navigate to parent (out of depth level)
+            else if (e.key === 'ArrowLeft' && selectedNode) {
+                e.preventDefault();
+                navigateToParent();
+            }
+            // Arrow Right - Navigate to first child (into depth level)
+            else if (e.key === 'ArrowRight' && selectedNode) {
+                e.preventDefault();
+                navigateToFirstChild();
+            }
+        });
+
+        window.onload = function() {
+            if (!document.getElementById('mindmap')) {
+                console.error('Mindmap container not found on page load');
+                return;
+            }
+            selectedNode = mindMap; // Set initial selection to root node
+            saveState(); // Save initial state
+            renderMindMap(mindMap, document.getElementById('mindmap'), 0);
+            // Focus the mindmap div so keyboard events work
+            document.getElementById('mindmap').focus();
+        };
+    </script>
+</body>
+</html>
