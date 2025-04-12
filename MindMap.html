@@ -5,7 +5,10 @@
     <style>
         #container { display: flex; gap: 20px; padding: 20px; }
         #controls { width: 200px; }
-        #mindmap { flex-grow: 1; }
+        #mindmap { 
+            flex-grow: 1; 
+            display: block;
+        }
         .node { 
             padding: 5px 10px; 
             margin: 5px; 
@@ -40,6 +43,11 @@
         }
         button { margin: 5px; padding: 5px 10px; }
         input { margin: 5px; padding: 5px; }
+        #controls button, #controls input {
+            width: 100%;
+            box-sizing: border-box;
+            float: left;
+        }
     </style>
 </head>
 <body>
@@ -114,18 +122,6 @@
                 container.dataset.nodeName = currentNode.name;
                 if (currentNode === selectedNode) container.classList.add('selected');
 
-                const nodeDiv = document.createElement('div');
-                const completionPercentage = currentNode.calculateCompletionPercentage();
-                nodeDiv.className = `node ${currentNode.isLeaf ? 'leaf' : 'parent'} ${currentNode.status}`;
-                nodeDiv.style.marginLeft = `${currentDepth * 20}px`;
-                nodeDiv.textContent = `${currentNode.name} (${completionPercentage}%)`;
-
-                nodeDiv.onclick = (e) => {
-                    e.stopPropagation();
-                    selectedNode = currentNode;
-                    renderMindMap();
-                };
-
                 container.ondragstart = (e) => {
 					e.stopPropagation();
 					if (draggedNode) return; // ignore this event
@@ -188,9 +184,21 @@
                     }
                 };
 
+                const nodeDiv = document.createElement('div');
+                const completionPercentage = currentNode.calculateCompletionPercentage();
+                nodeDiv.className = `node ${currentNode.isLeaf ? 'leaf' : 'parent'} ${currentNode.status}`;
+                nodeDiv.style.marginLeft = `${currentDepth * 20}px`;
+                nodeDiv.textContent = `${currentNode.name} (${completionPercentage}%)`;
+
+                nodeDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    selectedNode = currentNode;
+                    renderMindMap();
+                };
+
                 if (!currentNode.isLeaf && currentNode.children.length) {
                     const collapseBtn = document.createElement('button');
-                    collapseBtn.textContent = currentNode.collapsed ? '+' : '−';
+                    collapseBtn.textContent = currentNode.collapsed ? '+' : '-';
                     collapseBtn.style.marginLeft = '5px';
                     collapseBtn.onclick = (e) => {
                         e.stopPropagation();
@@ -199,6 +207,16 @@
                     };
                     nodeDiv.appendChild(collapseBtn);
                 }
+
+                const addChildBtn = document.createElement('button');
+                addChildBtn.textContent = 'Remove';
+                addChildBtn.style.marginLeft = '5px';
+                addChildBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removeChild(currentNode);
+                    renderMindMap();
+                };
+                nodeDiv.appendChild(addChildBtn);                
 
                 container.appendChild(nodeDiv);
 
@@ -260,18 +278,22 @@
                 alert('Please select a parent node first');
                 return;
             }
+            addChild(selectedNode);
+        }
+
+        function addChild(node) {
             const name = prompt('Enter node name:');
             if (name) {
                 const newNode = new Node(name);
-                if (selectedNode.isLeaf) {
-                    selectedNode.isLeaf = false;
-                    selectedNode.status = 'new';
+                if (node.isLeaf) {
+                    node.isLeaf = false;
+                    node.status = 'new';
                 }
-                selectedNode.children.push(newNode);
+                node.children.push(newNode);
                 updateParentStatuses(mindMap);
                 renderMindMap();
             }
-        }
+        }        
 
         function renameNode() {
             if (!selectedNode) {
@@ -295,13 +317,17 @@
             if (selectedNode === mindMap) {
                 alert('Cannot remove the root node');
                 return;
-            }
-            if (!confirm(`Are you sure you want to remove "${selectedNode.name}" and all its children?`)) {
+            }            
+            removeChild(selectedNode);
+        }
+
+        function removeChild(node) {
+            if (!confirm(`Are you sure you want to remove "${node.name}" and all its children?`)) {
                 return;
             }
 
             function removeFromParent(parent) {
-                const index = parent.children.indexOf(selectedNode);
+                const index = parent.children.indexOf(node);
                 if (index !== -1) {
                     parent.children.splice(index, 1);
                     if (parent.children.length === 0) {
@@ -309,7 +335,7 @@
                         parent.status = 'new';
                     }
                     updateParentStatuses(mindMap);
-                    selectedNode = null;
+                    node = null;
                     renderMindMap();
                 } else {
                     parent.children.forEach(child => removeFromParent(child));
