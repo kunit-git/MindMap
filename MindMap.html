@@ -65,6 +65,7 @@
             padding: 30px;
             overflow-y: auto;
             max-height: calc(100vh - 40px);
+            outline: none;
         }
 
         .node {
@@ -351,7 +352,7 @@
                 <strong>Double-click</strong> node to edit inline
             </div>
         </div>
-        <div id="mindmap"></div>
+        <div id="mindmap" tabindex="0"></div>
     </div>
 
     <script>
@@ -424,6 +425,8 @@
             if (historyIndex > 0) {
                 historyIndex--;
                 restoreState(history[historyIndex]);
+                // Refocus for keyboard navigation
+                setTimeout(() => document.getElementById('mindmap').focus(), 0);
             }
         }
 
@@ -431,6 +434,8 @@
             if (historyIndex < history.length - 1) {
                 historyIndex++;
                 restoreState(history[historyIndex]);
+                // Refocus for keyboard navigation
+                setTimeout(() => document.getElementById('mindmap').focus(), 0);
             }
         }
 
@@ -588,6 +593,8 @@
                     e.stopPropagation();
                     selectedNode = currentNode;
                     renderMindMap();
+                    // Refocus the mindmap div for keyboard navigation
+                    setTimeout(() => document.getElementById('mindmap').focus(), 0);
                 };
 
                 // Double-click to edit inline
@@ -634,6 +641,8 @@
                         e.stopPropagation();
                         currentNode.collapsed = !currentNode.collapsed;
                         renderMindMap();
+                        // Refocus for keyboard navigation
+                        setTimeout(() => document.getElementById('mindmap').focus(), 0);
                     };
                     nodeDiv.appendChild(collapseBtn);
                 }
@@ -645,6 +654,8 @@
                     e.stopPropagation();
                     removeChild(currentNode);
                     renderMindMap();
+                    // Refocus for keyboard navigation
+                    setTimeout(() => document.getElementById('mindmap').focus(), 0);
                 };
                 nodeDiv.appendChild(addChildBtn);                
 
@@ -664,6 +675,8 @@
                         updateParentStatuses(mindMap);
                         saveState();
                         renderMindMap();
+                        // Refocus for keyboard navigation
+                        setTimeout(() => document.getElementById('mindmap').focus(), 0);
                     };
                     statusSelect.style.marginLeft = `${currentDepth * 20 + 5}px`;
                     container.appendChild(statusSelect);
@@ -789,6 +802,8 @@
                 saveState();
                 renderMindMap();
             }
+            // Refocus for keyboard navigation
+            setTimeout(() => document.getElementById('mindmap').focus(), 0);
         }
 
         function renameNode() {
@@ -804,6 +819,8 @@
             } else if (newName !== null) {
                 alert('Node name cannot be empty');
             }
+            // Refocus for keyboard navigation
+            setTimeout(() => document.getElementById('mindmap').focus(), 0);
         }
 
         function addDescription() {
@@ -817,6 +834,8 @@
                 saveState();
                 renderMindMap();
             }
+            // Refocus for keyboard navigation
+            setTimeout(() => document.getElementById('mindmap').focus(), 0);
         }
 
         function removeNode() {
@@ -966,6 +985,8 @@
             selectedNode = mindMap; // Set initial selection to root node
             saveState(); // Save initial state
             renderMindMap(mindMap, document.getElementById('mindmap'), 0);
+            // Focus the mindmap div so keyboard events work
+            document.getElementById('mindmap').focus();
         };
     </script>
 </body>
