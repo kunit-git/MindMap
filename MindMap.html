@@ -963,6 +963,7 @@
                 console.error('Mindmap container not found on page load');
                 return;
             }
+            selectedNode = mindMap; // Set initial selection to root node
             saveState(); // Save initial state
             renderMindMap(mindMap, document.getElementById('mindmap'), 0);
         };
