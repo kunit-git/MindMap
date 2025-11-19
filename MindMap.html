@@ -339,6 +339,9 @@
 
             <div class="keyboard-hint">
                 <strong>Keyboard Shortcuts:</strong><br>
+                <kbd>↑</kbd><kbd>↓</kbd> Navigate siblings<br>
+                <kbd>←</kbd> Go to parent<br>
+                <kbd>→</kbd> Go to first child<br>
                 <kbd>Enter</kbd> Add child node<br>
                 <kbd>F2</kbd> Rename node<br>
                 <kbd>Del</kbd> Remove node<br>
@@ -717,6 +720,54 @@
             return parent1 === parent2 && parent1 !== null;
         }
 
+        // Arrow navigation helpers
+        function getSiblings(node) {
+            if (node === mindMap) return [mindMap];
+            const parent = findParent(mindMap, node);
+            return parent ? parent.children : [mindMap];
+        }
+
+        function navigateToNextSibling() {
+            if (!selectedNode) return;
+            const siblings = getSiblings(selectedNode);
+            const currentIndex = siblings.indexOf(selectedNode);
+            if (currentIndex < siblings.length - 1) {
+                selectedNode = siblings[currentIndex + 1];
+                renderMindMap();
+            }
+        }
+
+        function navigateToPreviousSibling() {
+            if (!selectedNode) return;
+            const siblings = getSiblings(selectedNode);
+            const currentIndex = siblings.indexOf(selectedNode);
+            if (currentIndex > 0) {
+                selectedNode = siblings[currentIndex - 1];
+                renderMindMap();
+            }
+        }
+
+        function navigateToParent() {
+            if (!selectedNode || selectedNode === mindMap) return;
+            const parent = findParent(mindMap, selectedNode);
+            if (parent) {
+                selectedNode = parent;
+                renderMindMap();
+            }
+        }
+
+        function navigateToFirstChild() {
+            if (!selectedNode) return;
+            if (!selectedNode.isLeaf && selectedNode.children.length > 0) {
+                // Expand the node if it's collapsed
+                if (selectedNode.collapsed) {
+                    selectedNode.collapsed = false;
+                }
+                selectedNode = selectedNode.children[0];
+                renderMindMap();
+            }
+        }
+
         function addNode() {
             if (!selectedNode) {
                 alert('Please select a parent node first');
@@ -884,6 +935,26 @@
             else if (e.key === 'Delete' && selectedNode) {
                 e.preventDefault();
                 removeNode();
+            }
+            // Arrow Up - Navigate to previous sibling
+            else if (e.key === 'ArrowUp' && selectedNode) {
+                e.preventDefault();
+                navigateToPreviousSibling();
+            }
+            // Arrow Down - Navigate to next sibling
+            else if (e.key === 'ArrowDown' && selectedNode) {
+                e.preventDefault();
+                navigateToNextSibling();
+            }
+            // Arrow Left - Navigate to parent (out of depth level)
+            else if (e.key === 'ArrowLeft' && selectedNode) {
+                e.preventDefault();
+                navigateToParent();
+            }
+            // Arrow Right - Navigate to first child (into depth level)
+            else if (e.key === 'ArrowRight' && selectedNode) {
+                e.preventDefault();
+                navigateToFirstChild();
             }
         });
 
