@@ -61,7 +61,7 @@
             letter-spacing: 0.5px;
         }
 
-        #mindmap {
+        #tasklist {
             flex-grow: 1;
             padding: 30px;
             overflow-y: auto;
@@ -353,7 +353,7 @@
                 <strong>Double-click</strong> node to edit inline
             </div>
         </div>
-        <div id="mindmap" tabindex="0"></div>
+        <div id="tasklist" tabindex="0"></div>
     </div>
 
     <script>
@@ -399,7 +399,7 @@
             }
         }
 
-        let mindMap = new Node('Root', false);
+        let taskList = new Node('Root', false);
         let selectedNode = null;
         let draggedNode = null;
         let history = [];
@@ -409,7 +409,7 @@
 
         // Undo/Redo functionality
         function saveState() {
-            const state = JSON.stringify(mindMap);
+            const state = JSON.stringify(taskList);
             if (historyIndex < history.length - 1) {
                 history = history.slice(0, historyIndex + 1);
             }
@@ -427,7 +427,7 @@
                 historyIndex--;
                 restoreState(history[historyIndex]);
                 // Refocus for keyboard navigation
-                setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                setTimeout(() => document.getElementById('tasklist').focus(), 0);
             }
         }
 
@@ -436,15 +436,15 @@
                 historyIndex++;
                 restoreState(history[historyIndex]);
                 // Refocus for keyboard navigation
-                setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                setTimeout(() => document.getElementById('tasklist').focus(), 0);
             }
         }
 
         function restoreState(state) {
-            mindMap = convertToNode(JSON.parse(state));
+            taskList = convertToNode(JSON.parse(state));
             selectedNode = null;
-            updateParentStatuses(mindMap);
-            renderMindMap();
+            updateParentStatuses(taskList);
+            renderTaskList();
             updateUndoRedoButtons();
         }
 
@@ -458,7 +458,7 @@
         // Search functionality
         function searchNodes() {
             searchTerm = document.getElementById('searchBox').value.toLowerCase();
-            renderMindMap();
+            renderTaskList();
         }
 
         function matchesSearch(node) {
@@ -489,7 +489,7 @@
                 }
             }
 
-            countNodes(mindMap);
+            countNodes(taskList);
 
             document.getElementById('totalNodes').textContent = total;
             document.getElementById('completedNodes').textContent = completed;
@@ -497,9 +497,9 @@
                 total > 0 ? Math.round((completed / total) * 100) + '%' : '0%';
         }
 
-        function renderMindMap(node = mindMap, element = document.getElementById('mindmap'), depth = 0) {
+        function renderTaskList(node = taskList, element = document.getElementById('tasklist'), depth = 0) {
             if (!element) {
-                console.error('Mindmap element not found');
+                console.error('Task list element not found');
                 return;
             }
             element.innerHTML = '';
@@ -528,9 +528,9 @@
                 container.ondragend = () => {
                     container.classList.remove('dragging');
                     draggedNode = null;
-                    updateParentStatuses(mindMap);
+                    updateParentStatuses(taskList);
                     saveState();
-                    renderMindMap();
+                    renderTaskList();
                 };
 
                 container.ondragover = (e) => {
@@ -553,9 +553,9 @@
 					e.preventDefault();
                     container.classList.remove('drag-over');
 					console.log(draggedNode.name + " - " + currentNode.name);
-                    if (draggedNode && draggedNode !== currentNode && draggedNode !== mindMap) {
+                    if (draggedNode && draggedNode !== currentNode && draggedNode !== taskList) {
                         // Find and remove draggedNode from its original parent
-                        const originalParent = findParent(mindMap, draggedNode);
+                        const originalParent = findParent(taskList, draggedNode);
                         if (originalParent) {
                             const index = originalParent.children.indexOf(draggedNode);
                             if (index !== -1) {
@@ -575,8 +575,8 @@
                         currentNode.children.push(draggedNode);
 
                         // Update statuses and re-render
-                        updateParentStatuses(mindMap);
-                        renderMindMap();
+                        updateParentStatuses(taskList);
+                        renderTaskList();
                     }
                 };
 
@@ -593,9 +593,9 @@
                 nodeDiv.onclick = (e) => {
                     e.stopPropagation();
                     selectedNode = currentNode;
-                    renderMindMap();
-                    // Refocus the mindmap div for keyboard navigation
-                    setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                    renderTaskList();
+                    // Refocus the task list div for keyboard navigation
+                    setTimeout(() => document.getElementById('tasklist').focus(), 0);
                 };
 
                 // Double-click to edit inline
@@ -612,9 +612,9 @@
                         if (input.value.trim()) {
                             currentNode.name = input.value.trim();
                             saveState();
-                            renderMindMap();
+                            renderTaskList();
                         } else {
-                            renderMindMap();
+                            renderTaskList();
                         }
                     };
 
@@ -625,7 +625,7 @@
                             saveEdit();
                         } else if (e.key === 'Escape') {
                             e.preventDefault();
-                            renderMindMap();
+                            renderTaskList();
                         }
                     };
 
@@ -641,9 +641,9 @@
                     collapseBtn.onclick = (e) => {
                         e.stopPropagation();
                         currentNode.collapsed = !currentNode.collapsed;
-                        renderMindMap();
+                        renderTaskList();
                         // Refocus for keyboard navigation
-                        setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                        setTimeout(() => document.getElementById('tasklist').focus(), 0);
                     };
                     nodeDiv.appendChild(collapseBtn);
                 }
@@ -654,9 +654,9 @@
                 addChildBtn.onclick = (e) => {
                     e.stopPropagation();
                     removeChild(currentNode);
-                    renderMindMap();
+                    renderTaskList();
                     // Refocus for keyboard navigation
-                    setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                    setTimeout(() => document.getElementById('tasklist').focus(), 0);
                 };
                 nodeDiv.appendChild(addChildBtn);                
 
@@ -673,11 +673,11 @@
                     });
                     statusSelect.onchange = (e) => {
                         currentNode.status = e.target.value;
-                        updateParentStatuses(mindMap);
+                        updateParentStatuses(taskList);
                         saveState();
-                        renderMindMap();
+                        renderTaskList();
                         // Refocus for keyboard navigation
-                        setTimeout(() => document.getElementById('mindmap').focus(), 0);
+                        setTimeout(() => document.getElementById('tasklist').focus(), 0);
                     };
                     container.appendChild(statusSelect);
                 }
@@ -728,16 +728,16 @@
         }
 
         function areSiblings(node1, node2) {
-            const parent1 = findParent(mindMap, node1);
-            const parent2 = findParent(mindMap, node2);
+            const parent1 = findParent(taskList, node1);
+            const parent2 = findParent(taskList, node2);
             return parent1 === parent2 && parent1 !== null;
         }
 
         // Arrow navigation helpers
         function getSiblings(node) {
-            if (node === mindMap) return [mindMap];
-            const parent = findParent(mindMap, node);
-            return parent ? parent.children : [mindMap];
+            if (node === taskList) return [taskList];
+            const parent = findParent(taskList, node);
+            return parent ? parent.children : [taskList];
         }
 
         function navigateToNextSibling() {
@@ -746,7 +746,7 @@
             const currentIndex = siblings.indexOf(selectedNode);
             if (currentIndex < siblings.length - 1) {
                 selectedNode = siblings[currentIndex + 1];
-                renderMindMap();
+                renderTaskList();
             }
         }
 
@@ -756,16 +756,16 @@
             const currentIndex = siblings.indexOf(selectedNode);
             if (currentIndex > 0) {
                 selectedNode = siblings[currentIndex - 1];
-                renderMindMap();
+                renderTaskList();
             }
         }
 
         function navigateToParent() {
-            if (!selectedNode || selectedNode === mindMap) return;
-            const parent = findParent(mindMap, selectedNode);
+            if (!selectedNode || selectedNode === taskList) return;
+            const parent = findParent(taskList, selectedNode);
             if (parent) {
                 selectedNode = parent;
-                renderMindMap();
+                renderTaskList();
             }
         }
 
@@ -777,7 +777,7 @@
                     selectedNode.collapsed = false;
                 }
                 selectedNode = selectedNode.children[0];
-                renderMindMap();
+                renderTaskList();
             }
         }
 
@@ -798,12 +798,12 @@
                     node.status = 'new';
                 }
                 node.children.push(newNode);
-                updateParentStatuses(mindMap);
+                updateParentStatuses(taskList);
                 saveState();
-                renderMindMap();
+                renderTaskList();
             }
             // Refocus for keyboard navigation
-            setTimeout(() => document.getElementById('mindmap').focus(), 0);
+            setTimeout(() => document.getElementById('tasklist').focus(), 0);
         }
 
         function renameNode() {
@@ -815,12 +815,12 @@
             if (newName && newName.trim()) {
                 selectedNode.name = newName.trim();
                 saveState();
-                renderMindMap();
+                renderTaskList();
             } else if (newName !== null) {
                 alert('Node name cannot be empty');
             }
             // Refocus for keyboard navigation
-            setTimeout(() => document.getElementById('mindmap').focus(), 0);
+            setTimeout(() => document.getElementById('tasklist').focus(), 0);
         }
 
         function addDescription() {
@@ -832,10 +832,10 @@
             if (description !== null) {
                 selectedNode.description = description;
                 saveState();
-                renderMindMap();
+                renderTaskList();
             }
             // Refocus for keyboard navigation
-            setTimeout(() => document.getElementById('mindmap').focus(), 0);
+            setTimeout(() => document.getElementById('tasklist').focus(), 0);
         }
 
         function removeNode() {
@@ -843,10 +843,10 @@
                 alert('Please select a node to remove');
                 return;
             }
-            if (selectedNode === mindMap) {
+            if (selectedNode === taskList) {
                 alert('Cannot remove the root node');
                 return;
-            }            
+            }
             removeChild(selectedNode);
         }
 
@@ -863,25 +863,25 @@
                         parent.isLeaf = true;
                         parent.status = 'new';
                     }
-                    updateParentStatuses(mindMap);
+                    updateParentStatuses(taskList);
                     saveState();
                     node = null;
-                    renderMindMap();
+                    renderTaskList();
                 } else {
                     parent.children.forEach(child => removeFromParent(child));
                 }
             }
 
-            removeFromParent(mindMap);
+            removeFromParent(taskList);
         }
 
         function exportToJson() {
-            const json = JSON.stringify(mindMap, null, 2);
+            const json = JSON.stringify(taskList, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'mindmap.json';
+            a.download = `${taskList.name}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -905,11 +905,11 @@
                 reader.onload = (e) => {
                     try {
                         const jsonData = JSON.parse(e.target.result);
-                        mindMap = convertToNode(jsonData);
-                        updateParentStatuses(mindMap);
+                        taskList = convertToNode(jsonData);
+                        updateParentStatuses(taskList);
                         selectedNode = null;
                         saveState();
-                        renderMindMap();
+                        renderTaskList();
                     } catch (error) {
                         alert('Error importing JSON: ' + error.message);
                     }
@@ -978,21 +978,21 @@
         });
 
         window.onload = function() {
-            if (!document.getElementById('mindmap')) {
-                console.error('Mindmap container not found on page load');
+            if (!document.getElementById('tasklist')) {
+                console.error('Task list container not found on page load');
                 return;
             }
-            selectedNode = mindMap; // Set initial selection to root node
+            selectedNode = taskList; // Set initial selection to root node
             saveState(); // Save initial state
-            renderMindMap(mindMap, document.getElementById('mindmap'), 0);
-            // Focus the mindmap div so keyboard events work
-            document.getElementById('mindmap').focus();
+            renderTaskList(taskList, document.getElementById('tasklist'), 0);
+            // Focus the task list div so keyboard events work
+            document.getElementById('tasklist').focus();
         };
 
         // Warn user before leaving the page
         window.addEventListener('beforeunload', function(e) {
             // Only show warning if there's actual data (more than just the root node)
-            if (mindMap.children.length > 0) {
+            if (taskList.children.length > 0) {
                 const confirmationMessage = 'All your information will be lost. Are you sure you want to leave?';
                 e.preventDefault();
                 e.returnValue = confirmationMessage; // For most browsers
