@@ -732,6 +732,9 @@
                         if (status === currentNode.status) option.selected = true;
                         statusSelect.appendChild(option);
                     });
+                    statusSelect.onclick = (e) => {
+                        e.stopPropagation();
+                    };
                     statusSelect.onchange = (e) => {
                         e.stopPropagation();
                         currentNode.status = e.target.value;
