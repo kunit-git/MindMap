@@ -590,17 +590,38 @@
                 nameSpan.style.cursor = 'pointer';
                 nodeDiv.appendChild(nameSpan);
 
+                let clickTimeout = null;
                 nodeDiv.onclick = (e) => {
                     e.stopPropagation();
-                    selectedNode = currentNode;
-                    renderTaskList();
-                    // Refocus the task list div for keyboard navigation
-                    setTimeout(() => document.getElementById('tasklist').focus(), 0);
+
+                    // Clear any pending click timeout to prevent focus conflict with double-click
+                    if (clickTimeout) {
+                        clearTimeout(clickTimeout);
+                    }
+
+                    // Delay the focus to allow double-click to cancel it
+                    clickTimeout = setTimeout(() => {
+                        if (selectedNode !== currentNode) {
+                            selectedNode = currentNode;
+                            renderTaskList();
+                        }
+                        // Refocus the task list div for keyboard navigation
+                        document.getElementById('tasklist').focus();
+                        clickTimeout = null;
+                    }, 200);
                 };
 
                 // Double-click to edit inline
                 nameSpan.ondblclick = (e) => {
                     e.stopPropagation();
+                    e.preventDefault();
+
+                    // Cancel the pending click timeout
+                    if (clickTimeout) {
+                        clearTimeout(clickTimeout);
+                        clickTimeout = null;
+                    }
+
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.value = currentNode.name;
@@ -630,8 +651,11 @@
                     };
 
                     nameSpan.replaceWith(input);
-                    input.focus();
-                    input.select();
+                    // Use setTimeout to ensure focus happens after the click event completes
+                    setTimeout(() => {
+                        input.focus();
+                        input.select();
+                    }, 0);
                 };
 
                 if (!currentNode.isLeaf && currentNode.children.length) {
