@@ -988,6 +988,17 @@
             // Focus the mindmap div so keyboard events work
             document.getElementById('mindmap').focus();
         };
+
+        // Warn user before leaving the page
+        window.addEventListener('beforeunload', function(e) {
+            // Only show warning if there's actual data (more than just the root node)
+            if (mindMap.children.length > 0) {
+                const confirmationMessage = 'All your information will be lost. Are you sure you want to leave?';
+                e.preventDefault();
+                e.returnValue = confirmationMessage; // For most browsers
+                return confirmationMessage; // For some older browsers
+            }
+        });
     </script>
 </body>
 </html>
