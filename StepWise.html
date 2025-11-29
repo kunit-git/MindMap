@@ -344,6 +344,7 @@
                 <kbd>↑</kbd><kbd>↓</kbd> Navigate siblings<br>
                 <kbd>←</kbd> Go to parent<br>
                 <kbd>→</kbd> Go to first child<br>
+                <kbd>Space</kbd> Expand/collapse node<br>
                 <kbd>Enter</kbd> Add child node<br>
                 <kbd>F2</kbd> Rename node<br>
                 <kbd>Del</kbd> Remove node<br>
@@ -998,6 +999,14 @@
             else if (e.key === 'ArrowRight' && selectedNode) {
                 e.preventDefault();
                 navigateToFirstChild();
+            }
+            // Space - Toggle expand/collapse for nodes with children
+            else if (e.key === ' ' && selectedNode) {
+                e.preventDefault();
+                if (!selectedNode.isLeaf && selectedNode.children.length > 0) {
+                    selectedNode.collapsed = !selectedNode.collapsed;
+                    renderTaskList();
+                }
             }
         });
 
