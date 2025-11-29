@@ -74,7 +74,9 @@
             margin: 5px;
             border-radius: 8px;
             cursor: pointer;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-weight: 500;
             font-size: 0.95em;
             transition: all 0.2s ease;
@@ -84,6 +86,44 @@
         .node:hover {
             transform: translateX(2px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .expand-collapse-btn {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            line-height: 1;
+            background: rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .expand-collapse-btn:hover {
+            background: rgba(0,0,0,0.2);
+            transform: scale(1.1);
+        }
+
+        .node-text {
+            flex-grow: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .node-actions {
+            flex-shrink: 0;
+            display: flex;
+            gap: 5px;
+            align-items: center;
         }
 
         .leaf.new {
@@ -586,7 +626,24 @@
                 nodeDiv.className = `node ${currentNode.isLeaf ? 'leaf' : 'parent'} ${currentNode.status}`;
                 nodeDiv.style.marginLeft = `${currentDepth * 20}px`;
 
+                // Add expand/collapse button on the left
+                if (!currentNode.isLeaf && currentNode.children.length) {
+                    const collapseBtn = document.createElement('button');
+                    collapseBtn.className = 'expand-collapse-btn';
+                    collapseBtn.textContent = currentNode.collapsed ? '➕' : '➖';
+                    collapseBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        currentNode.collapsed = !currentNode.collapsed;
+                        renderTaskList();
+                        // Refocus for keyboard navigation
+                        setTimeout(() => document.getElementById('tasklist').focus(), 0);
+                    };
+                    nodeDiv.appendChild(collapseBtn);
+                }
+
+                // Add node text in the middle
                 const nameSpan = document.createElement('span');
+                nameSpan.className = 'node-text';
                 nameSpan.textContent = `${currentNode.name} (${completionPercentage}%)`;
                 nameSpan.style.cursor = 'pointer';
                 nodeDiv.appendChild(nameSpan);
@@ -626,7 +683,7 @@
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.value = currentNode.name;
-                    input.style.width = '200px';
+                    input.style.flex = '1';
                     input.style.fontSize = '0.95em';
                     input.style.padding = '4px';
 
@@ -659,34 +716,11 @@
                     }, 0);
                 };
 
-                if (!currentNode.isLeaf && currentNode.children.length) {
-                    const collapseBtn = document.createElement('button');
-                    collapseBtn.textContent = currentNode.collapsed ? '+' : '-';
-                    collapseBtn.style.marginLeft = '5px';
-                    collapseBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        currentNode.collapsed = !currentNode.collapsed;
-                        renderTaskList();
-                        // Refocus for keyboard navigation
-                        setTimeout(() => document.getElementById('tasklist').focus(), 0);
-                    };
-                    nodeDiv.appendChild(collapseBtn);
-                }
+                // Add actions container on the right
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'node-actions';
 
-                const addChildBtn = document.createElement('button');
-                addChildBtn.textContent = 'Remove';
-                addChildBtn.style.marginLeft = '5px';
-                addChildBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    removeChild(currentNode);
-                    renderTaskList();
-                    // Refocus for keyboard navigation
-                    setTimeout(() => document.getElementById('tasklist').focus(), 0);
-                };
-                nodeDiv.appendChild(addChildBtn);                
-
-                container.appendChild(nodeDiv);
-
+                // Add status dropdown for leaf nodes
                 if (currentNode.isLeaf) {
                     const statusSelect = document.createElement('select');
                     ['new', 'in-progress', 'done'].forEach(status => {
@@ -697,6 +731,7 @@
                         statusSelect.appendChild(option);
                     });
                     statusSelect.onchange = (e) => {
+                        e.stopPropagation();
                         currentNode.status = e.target.value;
                         updateParentStatuses(taskList);
                         saveState();
@@ -704,8 +739,23 @@
                         // Refocus for keyboard navigation
                         setTimeout(() => document.getElementById('tasklist').focus(), 0);
                     };
-                    container.appendChild(statusSelect);
+                    actionsDiv.appendChild(statusSelect);
                 }
+
+                // Add remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removeChild(currentNode);
+                    renderTaskList();
+                    // Refocus for keyboard navigation
+                    setTimeout(() => document.getElementById('tasklist').focus(), 0);
+                };
+                actionsDiv.appendChild(removeBtn);
+
+                nodeDiv.appendChild(actionsDiv);
+                container.appendChild(nodeDiv);
 
                 // Add description if it exists
                 if (currentNode.description) {
