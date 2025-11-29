@@ -75,7 +75,7 @@
             border-radius: 8px;
             cursor: pointer;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 8px;
             font-weight: 500;
             font-size: 0.95em;
@@ -94,6 +94,7 @@
             height: 24px;
             padding: 0;
             margin: 0;
+            margin-top: 2px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -114,16 +115,17 @@
         .node-text {
             flex-grow: 1;
             min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.4;
         }
 
         .node-actions {
             flex-shrink: 0;
             display: flex;
             gap: 5px;
-            align-items: center;
+            align-items: flex-start;
+            padding-top: 2px;
         }
 
         .leaf.new {
